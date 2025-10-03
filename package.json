@@ -1,12 +1,14 @@
 {
 	"name": "react-native-help-scout",
-	"version": "0.1.8",
+	"version": "1.0.0",
+	"description": "Help Scout's Beacon for React Native with New Architecture support",
 	"main": "./dist/index.js",
-	"typings": "./dist/index.d.ts",
+	"react-native": "src/index",
+	"source": "src/index",
+	"types": "./dist/index.d.ts",
 	"repository": "git@github.com:codemotionapps/react-native-help-scout.git",
 	"author": "Dimitar Nestorov <opensource@dimitarnestorov.com> (https://dimitarnestorov.com)",
 	"homepage": "https://github.com/codemotionapps/react-native-help-scout",
-	"description": "Help Scout's Beacon for React Native",
 	"license": "MIT",
 	"scripts": {
 		"prepublishOnly": "yarn run clean && yarn run copy-readme && yarn run copy-license && yarn run build",
@@ -18,7 +20,7 @@
 	},
 	"peerDependencies": {
 		"react": ">=16.9.0",
-		"react-native": ">=0.61.0"
+		"react-native": ">=0.68.0"
 	},
 	"dependencies": {
 		"@types/events": "*",
@@ -31,5 +33,18 @@
 		"react native",
 		"help scout",
 		"help scout beacon"
-	]
+	],
+	"codegenConfig": {
+		"name": "RNHelpScoutBeaconSpec",
+		"type": "modules",
+		"jsSrcsDir": "src",
+		"android": {
+			"javaPackageName": "com.codemotionapps.reactnativehelpscout"
+		}
+	},
+	"devDependencies": {
+		"react": "^18.2.0",
+		"react-native": "^0.73.11",
+		"typescript": "^5.9.3"
+	}
 }

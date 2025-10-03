@@ -15,12 +15,19 @@ Pod::Spec.new do |s|
   s.module_name  = 'ReactNativeHelpScout'
 
   s.source       = { :git => 'https://github.com/codemotionapps/react-native-help-scout.git', :tag => "#{s.version}" }
-  s.source_files = "ios/**/*.{h,m}"
+  s.source_files = "ios/**/*.{h,m,mm}"
+  
+  # Install dependencies for new architecture
+  install_modules_dependencies(s)
+  
+  # New architecture is required
+  s.compiler_flags = folly_compiler_flags + " -DRCT_NEW_ARCH_ENABLED=1"
+  s.pod_target_xcconfig = {
+    "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\"",
+    "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
+  }
 
-  s.dependency 'React'
   s.dependency 'Beacon', '~> 3.0.1'
-
   s.frameworks = 'UIKit'
-
   s.static_framework = true
 end
