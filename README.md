@@ -26,6 +26,9 @@ Beacon.init('beacon-id')
 // Open Beacon
 Beacon.open()
 
+// Open Beacon in Secure mode
+Beacon.open(signature)
+
 // Set user information in Beacon
 Beacon.identify({
 	email: 'joshuaheywood@live.com',
