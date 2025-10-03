@@ -21,7 +21,7 @@ Pod::Spec.new do |s|
   install_modules_dependencies(s)
   
   # New architecture is required
-  s.compiler_flags = folly_compiler_flags + " -DRCT_NEW_ARCH_ENABLED=1"
+  s.compiler_flags = folly_flags() + " -DRCT_NEW_ARCH_ENABLED=1"
   s.pod_target_xcconfig = {
     "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\"",
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17"
