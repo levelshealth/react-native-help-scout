@@ -2,7 +2,6 @@ import { TurboModule } from 'react-native';
 export interface Identity {
     email?: string;
     name?: string;
-    [key: string]: string | undefined;
 }
 export interface Spec extends TurboModule {
     readonly init: (beaconId: string) => void;
