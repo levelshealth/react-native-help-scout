@@ -11,27 +11,56 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.modules.core.DeviceEventManagerModule;
 import com.facebook.react.module.annotations.ReactModule;
 
+import android.app.Application;
+
 import com.helpscout.beacon.Beacon;
-import com.helpscout.beacon.model.BeaconUser;
+import com.helpscout.beacon.model.BeaconScreens;
+import com.helpscout.beacon.model.PreFilledForm;
 import com.helpscout.beacon.ui.BeaconActivity;
+import com.helpscout.beacon.ui.BeaconEventLifecycleHandler;
 import com.helpscout.beacon.ui.BeaconOnClosedListener;
 import com.helpscout.beacon.ui.BeaconOnOpenedListener;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 @ReactModule(name = RNHelpScoutBeaconModule.NAME)
-public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec implements BeaconOnOpenedListener, BeaconOnClosedListener {
+public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec {
     
     public static final String NAME = "RNHelpScoutBeacon";
     private ReactApplicationContext reactContext;
     private String formSubject;
     private String formText;
+    private String userEmail;
+    private String userName;
 
     public RNHelpScoutBeaconModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
+        
+        // Set up event lifecycle handler for open/close events
+        BeaconEventLifecycleHandler eventLifecycleHandler = new BeaconEventLifecycleHandler(
+            new BeaconOnOpenedListener() {
+                @Override
+                public void onOpened() {
+                    sendEvent("open", null);
+                }
+            },
+            new BeaconOnClosedListener() {
+                @Override
+                public void onClosed() {
+                    clearFormPrefill();
+                    Beacon.clear();
+                    sendEvent("close", null);
+                }
+            }
+        );
+        
+        Application application = (Application) reactContext.getApplicationContext();
+        application.registerActivityLifecycleCallbacks(eventLifecycleHandler);
     }
 
     @Override
@@ -42,39 +71,29 @@ public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec impleme
 
     @Override
     public void init(String beaconId) {
-        Beacon.Builder builder = new Beacon.Builder()
+        new Beacon.Builder()
                 .withBeaconId(beaconId)
-                .withLogsEnabled(false);
-        
-        Beacon beacon = builder.build();
-        Beacon.setBeacon(beacon);
-        
-        // Set listeners
-        BeaconActivity.setOnOpenedListener(this);
-        BeaconActivity.setOnClosedListener(this);
+                .build();
     }
 
     @Override
     public void open(@Nullable String signature) {
-        if (getCurrentActivity() != null) {
-            if (signature != null && !signature.isEmpty()) {
-                BeaconActivity.openWithSignature(getCurrentActivity(), signature);
-            } else {
-                BeaconActivity.open(getCurrentActivity());
-            }
+        if (signature != null && !signature.isEmpty()) {
+            BeaconActivity.openInSecureMode(reactContext, signature);
+        } else {
+            BeaconActivity.open(reactContext);
         }
     }
 
     @Override
     public void identify(ReadableMap identity) {
-        BeaconUser.Builder builder = new BeaconUser.Builder();
+        this.userEmail = identity.hasKey("email") ? identity.getString("email") : "";
         
-        if (identity.hasKey("email") && !identity.isNull("email")) {
-            builder.withEmail(identity.getString("email"));
-        }
-        
-        if (identity.hasKey("name") && !identity.isNull("name")) {
-            builder.withName(identity.getString("name"));
+        if (identity.hasKey("name")) {
+            this.userName = identity.getString("name");
+            Beacon.identify(this.userEmail, this.userName);
+        } else {
+            Beacon.identify(this.userEmail);
         }
         
         // Add custom attributes
@@ -85,13 +104,10 @@ public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec impleme
             if (!"email".equals(key) && !"name".equals(key)) {
                 Object value = entry.getValue();
                 if (value != null) {
-                    builder.withAttribute(key, value.toString());
+                    Beacon.addAttributeWithKey(key, value.toString());
                 }
             }
         }
-        
-        BeaconUser user = builder.build();
-        Beacon.login(user);
     }
 
     @Override
@@ -101,42 +117,36 @@ public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec impleme
 
     @Override
     public void navigate(String route) {
-        if (getCurrentActivity() != null) {
-            BeaconActivity.openWithRoute(getCurrentActivity(), route);
-        }
+        // Navigate is a no-op on Android - routes handled by specific methods
     }
 
     @Override
     public void search(String query) {
-        if (getCurrentActivity() != null) {
-            BeaconActivity.openWithSearch(getCurrentActivity(), query);
-        }
+        ArrayList<String> list = new ArrayList<String>();
+        list.add(query);
+        BeaconActivity.open(reactContext, BeaconScreens.SEARCH_SCREEN, list);
     }
 
     @Override
     public void openArticle(String articleId) {
-        if (getCurrentActivity() != null) {
-            BeaconActivity.openArticle(getCurrentActivity(), articleId);
-        }
+        ArrayList<String> list = new ArrayList<String>();
+        list.add(articleId);
+        BeaconActivity.open(reactContext, BeaconScreens.ARTICLE_SCREEN, list);
     }
 
     @Override
     public void contactForm() {
-        if (getCurrentActivity() != null) {
-            BeaconActivity.openWithRoute(getCurrentActivity(), "/ask/message/");
-        }
+        BeaconActivity.open(reactContext, BeaconScreens.CONTACT_FORM_SCREEN, new ArrayList<String>());
     }
 
     @Override
     public void previousMessages() {
-        if (getCurrentActivity() != null) {
-            BeaconActivity.openWithRoute(getCurrentActivity(), "/previous-messages/");
-        }
+        BeaconActivity.open(reactContext, BeaconScreens.PREVIOUS_MESSAGES, new ArrayList<String>());
     }
 
     @Override
     public void dismiss(Promise promise) {
-        BeaconActivity.dismiss();
+        // Dismiss is a no-op on Android - user dismisses manually
         promise.resolve(null);
     }
 
@@ -144,12 +154,21 @@ public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec impleme
     public void prefillForm(String subject, String content) {
         this.formSubject = subject;
         this.formText = content;
+        Beacon.addPreFilledForm(new PreFilledForm(
+            this.userName,
+            subject,
+            content,
+            Collections.<Integer, String>emptyMap(),
+            Collections.<String>emptyList(),
+            this.userEmail
+        ));
     }
 
     @Override
     public void clearFormPrefill() {
         this.formSubject = null;
         this.formText = null;
+        Beacon.contactFormReset();
     }
 
     @Override
@@ -160,20 +179,6 @@ public class RNHelpScoutBeaconModule extends NativeRNHelpScoutBeaconSpec impleme
     @Override
     public void removeListeners(double count) {
         // Required for RCTEventEmitter
-    }
-
-    // BeaconOnOpenedListener
-    @Override
-    public void onOpened() {
-        sendEvent("open", null);
-    }
-
-    // BeaconOnClosedListener
-    @Override
-    public void onClosed() {
-        clearFormPrefill();
-        Beacon.clear();
-        sendEvent("close", null);
     }
 
     private void sendEvent(String eventName, @Nullable WritableMap params) {
