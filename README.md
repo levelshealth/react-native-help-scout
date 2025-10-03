@@ -3,7 +3,9 @@
 [![npm version](https://img.shields.io/npm/v/react-native-help-scout.svg)](https://www.npmjs.com/package/react-native-help-scout)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-Help Scout's Beacon for React Native.
+Help Scout's Beacon for React Native built exclusively for **React Native New Architecture** (TurboModules).
+
+> ⚠️ **Version 1.0.0+ ONLY supports React Native's New Architecture**. This library does not support the old bridge architecture. If you need old bridge support, this library is not compatible with your project.
 
 ## Installation
 
@@ -11,9 +13,23 @@ Help Scout's Beacon for React Native.
 yarn add react-native-help-scout
 ```
 
-### iOS
+### Prerequisites
 
-Please visit https://developer.helpscout.com/beacon-2/ios/#additional-setup and complete the steps
+This library requires React Native's **New Architecture** to be enabled in your app:
+
+1. **React Native >= 0.68.0**
+2. **New Architecture enabled** in your app configuration
+3. **TurboModules and Fabric** must be enabled
+
+For enabling the new architecture, follow the [React Native New Architecture Guide](https://reactnative.dev/docs/the-new-architecture-landing-page).
+
+### iOS Setup
+
+Please visit https://developer.helpscout.com/beacon-2/ios/#additional-setup and complete the steps.
+
+### Android Setup
+
+The Android implementation is included and will be automatically configured with the TurboModule system.
 
 ## Usage
 
@@ -55,8 +71,13 @@ Beacon.contactForm()
 // Open previous messages (Android only)
 Beacon.previousMessages()
 
-// Dismissing the Beacon (iOS only)
-Beacon.dismiss(() => console.log('Beacon dismissed'))
+// Dismissing the Beacon (iOS only) - Now returns a Promise
+Beacon.dismiss().then(() => console.log('Beacon dismissed'))
+// or with async/await:
+const dismissBeacon = async () => {
+  await Beacon.dismiss()
+  console.log('Beacon dismissed')
+}
 
 // Event handlers
 const openHandler = () => console.log('Beacon opened')
@@ -74,4 +95,16 @@ Beacon.events.once('close', () => console.log('This will only get called the fir
 
 ## Requirements
 
--   React Native 0.61.0 or newer
+- **React Native >= 0.68.0**
+- **React Native New Architecture enabled** (TurboModules + Fabric)
+- **iOS 11.0+**
+- **Android API 21+**
+
+## Migration from 0.x
+
+If you're upgrading from version 0.x:
+
+1. Update your React Native version to >= 0.68.0
+2. Enable the new architecture in your app
+3. Replace `Beacon.dismiss(callback)` with `await Beacon.dismiss()` or `.then()`
+4. All other APIs remain the same

@@ -1,7 +1,4 @@
 #import <React/RCTConvert.h>
-
-#import "Beacon.h"
-
 #import "RNHelpScoutBeacon.h"
 
 @implementation RNHelpScoutBeacon
@@ -79,9 +76,10 @@ RCT_EXPORT_METHOD(openArticle:(NSString *)articleId)
     });
 }
 
-RCT_EXPORT_METHOD(dismiss:(RCTResponseSenderBlock)callback)
+RCT_EXPORT_METHOD(dismiss:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject)
 {
-    [self close:callback];
+    [self closeWithResolve:resolve];
 }
 
 RCT_EXPORT_METHOD(identify:(NSDictionary *)identity)
@@ -130,6 +128,13 @@ RCT_EXPORT_METHOD(clearFormPrefill)
     }];
 }
 
+- (void)closeWithResolve:(RCTPromiseResolveBlock)resolve
+{
+    [HSBeacon dismissBeacon:^{
+        resolve(nil);
+    }];
+}
+
 - (void)startObserving {
     hasListeners = YES;
 }
@@ -153,7 +158,7 @@ RCT_EXPORT_METHOD(clearFormPrefill)
 - (void)onBeaconOpen:(HSBeaconSettings *)beaconSettings
 {
     if (!hasListeners) return;
-	[self sendEventWithName:@"open" body:NULL];
+    [self sendEventWithName:@"open" body:NULL];
 }
 
 - (void)onBeaconClose:(HSBeaconSettings *)beaconSettings
@@ -162,12 +167,18 @@ RCT_EXPORT_METHOD(clearFormPrefill)
     [HSBeacon reset];
 
     if (!hasListeners) return;
-	[self sendEventWithName:@"close" body:NULL];
+    [self sendEventWithName:@"close" body:NULL];
 }
 
 -(void)prefill:(HSBeaconContactForm *)form {
     form.subject = formSubject;
     form.text = formText;
+}
+
+- (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
+    (const facebook::react::ObjCTurboModule::InitParams &)params
+{
+    return std::make_shared<facebook::react::NativeRNHelpScoutBeaconSpecJSI>(params);
 }
 
 @end

@@ -1,5 +1,6 @@
-import { NativeModules, NativeEventEmitter, EventSubscriptionVendor } from 'react-native'
+import { NativeEventEmitter } from 'react-native'
 import { EventEmitter } from 'events'
+import NativeHelpScout from './NativeRNHelpScoutBeacon'
 
 interface IIdentity {
 	email?: string
@@ -7,7 +8,7 @@ interface IIdentity {
 	[key: string]: string | undefined
 }
 
-interface IBeacon extends EventSubscriptionVendor {
+interface IBeacon {
 	init(beaconId: string): void
 	open(signature?: string): void
 	identify(identity: IIdentity): void
@@ -18,13 +19,17 @@ interface IBeacon extends EventSubscriptionVendor {
 	// chat(): void
 	contactForm(): void
 	previousMessages(): void
-	dismiss(callback: () => void): void
+	dismiss(): Promise<void>
 
 	prefillForm(subject: string, content: string): void
 	clearFormPrefill(): void
+	
+	// TurboModule event emitter methods
+	addListener(eventName: string): void
+	removeListeners(count: number): void
 }
 
-const NativeModule = <IBeacon>NativeModules.RNHelpScoutBeacon
+const NativeModule = NativeHelpScout as any as IBeacon
 
 const nativeEmitter = new NativeEventEmitter(NativeModule)
 
