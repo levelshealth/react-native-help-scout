@@ -70,8 +70,12 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 	}
 
 	@ReactMethod
-	public void open() {
-		BeaconActivity.open(reactContext);
+	public void open(String signature) {
+		if(signature != null && !signature.isEmpty()){
+			BeaconActivity.openInSecureMode(reactContext, signature);
+		}else{
+			BeaconActivity.open(reactContext);
+		}
 	}
 
 	@ReactMethod

@@ -9,7 +9,7 @@ interface IIdentity {
 
 interface IBeacon extends EventSubscriptionVendor {
 	init(beaconId: string): void
-	open(): void
+	open(signature?: string): void
 	identify(identity: IIdentity): void
 	logout(): void
 	navigate(route: string): void
