@@ -20,14 +20,15 @@ Pod::Spec.new do |s|
   # Install dependencies for new architecture
   install_modules_dependencies(s)
   
-  # New architecture configuration
-  s.compiler_flags = folly_flags() + " -DRCT_NEW_ARCH_ENABLED=1"
+  # New architecture configuration  
+  s.compiler_flags = folly_flags() + " -DRCT_NEW_ARCH_ENABLED=1 -fmodules -fcxx-modules"
   s.pod_target_xcconfig = {
-    "HEADER_SEARCH_PATHS" => "\"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/RCT-Folly\" \"$(PODS_ROOT)/DoubleConversion\"",
+    "HEADER_SEARCH_PATHS" => "$(inherited) \"$(PODS_ROOT)/RCT-Folly\" \"$(PODS_ROOT)/boost\" \"$(PODS_ROOT)/DoubleConversion\"",
     "CLANG_CXX_LANGUAGE_STANDARD" => "c++17",
-    "OTHER_CPLUSPLUSFLAGS" => "-DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1"
+    "OTHER_CPLUSPLUSFLAGS" => "$(inherited) -DFOLLY_NO_CONFIG -DFOLLY_MOBILE=1 -DFOLLY_USE_LIBCPP=1"
   }
-
+  
+  s.libraries = 'c++'
   s.dependency 'Beacon', '~> 3.0.1'
   s.frameworks = 'UIKit'
   s.static_framework = true

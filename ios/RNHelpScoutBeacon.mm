@@ -1,5 +1,6 @@
 #import <React/RCTConvert.h>
 #import "RNHelpScoutBeacon.h"
+#import <Beacon/Beacon.h>
 
 @implementation RNHelpScoutBeacon
 {
@@ -84,23 +85,48 @@ RCT_EXPORT_METHOD(dismiss:(RCTPromiseResolveBlock)resolve
 
 RCT_EXPORT_METHOD(identify:(NSDictionary *)identity)
 {
-    HSBeaconUser *user = [[HSBeaconUser alloc] init];
-
-    if ([identity objectForKey:@"email"] != NULL) {
-        user.email = [RCTConvert NSString:identity[@"email"]];
-    }
-
-    if ([identity objectForKey:@"name"] != NULL) {
-        user.name = [RCTConvert NSString:identity[@"name"]];
+    if (identity == nil || ![identity isKindOfClass:[NSDictionary class]]) {
+        return;
     }
     
-    for (NSString *key in identity) {
-        if ([key isEqual:@"email"] || [key isEqual:@"name"]) continue;
-        id value = identity[key];
-        [user addAttributeWithKey:key value:[RCTConvert NSString:value]];
-    }
-    
-    [HSBeacon login:user];
+    // Run on main thread since HSBeacon requires it
+    dispatch_async(dispatch_get_main_queue(), ^{
+        HSBeaconUser *user = [[HSBeaconUser alloc] init];
+        if (!user) {
+            return;
+        }
+
+        id email = identity[@"email"];
+        if (email != nil && ![email isKindOfClass:[NSNull class]] && [email isKindOfClass:[NSString class]]) {
+            user.email = (NSString *)email;
+        }
+
+        id name = identity[@"name"];
+        if (name != nil && ![name isKindOfClass:[NSNull class]] && [name isKindOfClass:[NSString class]]) {
+            user.name = (NSString *)name;
+        }
+        
+        for (NSString *key in identity) {
+            if (![key isKindOfClass:[NSString class]]) continue;
+            if ([key isEqualToString:@"email"] || [key isEqualToString:@"name"]) continue;
+            
+            id value = identity[key];
+            if (value != nil && ![value isKindOfClass:[NSNull class]]) {
+                NSString *stringValue = nil;
+                if ([value isKindOfClass:[NSString class]]) {
+                    stringValue = (NSString *)value;
+                } else {
+                    stringValue = [NSString stringWithFormat:@"%@", value];
+                }
+                
+                if (stringValue && stringValue.length > 0) {
+                    [user addAttributeWithKey:key value:stringValue];
+                }
+            }
+        }
+        
+        [HSBeacon login:user];
+    });
 }
 
 RCT_EXPORT_METHOD(logout)

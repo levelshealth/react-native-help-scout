@@ -10,7 +10,7 @@ import com.facebook.react.module.annotations.ReactModule;
 abstract class NativeRNHelpScoutBeaconSpec extends ReactContextBaseJavaModule {
     public static final String NAME = "RNHelpScoutBeacon";
 
-    public RNHelpScoutBeaconSpec(ReactApplicationContext reactContext) {
+    public NativeRNHelpScoutBeaconSpec(ReactApplicationContext reactContext) {
         super(reactContext);
     }
 
