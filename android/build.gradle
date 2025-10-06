@@ -22,6 +22,15 @@ buildscript {
 apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
+def isNewArchitectureEnabled() {
+	return true
+}
+
+def reactNativeArchitectures() {
+	def value = project.getProperties().get("reactNativeArchitectures")
+	return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
+}
+
 // Matches values in recent template from React Native 0.59 / 0.60
 // https://github.com/facebook/react-native/blob/0.59-stable/template/android/build.gradle#L5-L9
 // https://github.com/facebook/react-native/blob/0.60-stable/template/android/build.gradle#L5-L9
@@ -43,6 +52,28 @@ android {
 	}
 	lintOptions {
 		abortOnError false
+	}
+	
+	externalNativeBuild {
+		cmake {
+			path "CMakeLists.txt"
+		}
+	}
+	
+	buildFeatures {
+		prefab true
+	}
+	
+	sourceSets {
+		main {
+			java {
+				if (isNewArchitectureEnabled()) {
+					srcDirs += [
+						"build/generated/source/codegen/java"
+					]
+				}
+			}
+		}
 	}
 }
 
