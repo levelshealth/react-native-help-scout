@@ -4,19 +4,20 @@ import { EventEmitter } from 'events'
 interface IIdentity {
 	email?: string
 	name?: string
+	signature?: string
 	[key: string]: string | undefined
 }
 
 interface IBeacon extends EventSubscriptionVendor {
 	init(beaconId: string): void
-	open(): void
+	open(signature?: string): void
 	identify(identity: IIdentity): void
 	logout(): void
 	navigate(route: string): void
-	search(query: string): void
+	search(query: string, signature?: string): void
 	openArticle(articleId: string): void
 	// chat(): void
-	contactForm(): void
+	contactForm(signature?: string): void
 	previousMessages(): void
 	dismiss(callback: () => void): void
 
@@ -50,6 +51,15 @@ nativeEmitter.addListener('close', () => {
 })
 
 type BeaconWithEvents = IBeacon & { events: BeaconEventEmitter }
-;(NativeModule as BeaconWithEvents).events = events
 
-export default <BeaconWithEvents>NativeModule
+// Native methods declare the signature argument, and the bridge rejects calls with fewer arguments
+// than declared, so always pass it ('' when absent means unsigned).
+const Beacon = <BeaconWithEvents>{
+	...NativeModule,
+	events,
+	open: (signature?: string) => NativeModule.open(signature ?? ''),
+	search: (query: string, signature?: string) => NativeModule.search(query, signature ?? ''),
+	contactForm: (signature?: string) => NativeModule.contactForm(signature ?? ''),
+}
+
+export default Beacon
