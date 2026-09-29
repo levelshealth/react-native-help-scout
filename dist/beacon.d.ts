@@ -3,17 +3,18 @@ import { EventEmitter } from 'events';
 interface IIdentity {
     email?: string;
     name?: string;
+    signature?: string;
     [key: string]: string | undefined;
 }
 interface IBeacon extends EventSubscriptionVendor {
     init(beaconId: string): void;
-    open(): void;
+    open(signature?: string): void;
     identify(identity: IIdentity): void;
     logout(): void;
     navigate(route: string): void;
-    search(query: string): void;
+    search(query: string, signature?: string): void;
     openArticle(articleId: string): void;
-    contactForm(): void;
+    contactForm(signature?: string): void;
     previousMessages(): void;
     dismiss(callback: () => void): void;
     prefillForm(subject: string, content: string): void;
@@ -31,5 +32,5 @@ interface BeaconEventEmitter extends EventEmitter {
 declare type BeaconWithEvents = IBeacon & {
     events: BeaconEventEmitter;
 };
-declare const _default: BeaconWithEvents;
-export default _default;
+declare const Beacon: BeaconWithEvents;
+export default Beacon;

@@ -29,6 +29,7 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 
 	private String userEmail;
 	private String userName;
+	private String userSignature;
 
 	public HelpScoutModule(final ReactApplicationContext reactContext) {
 		super(reactContext);
@@ -70,8 +71,13 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 	}
 
 	@ReactMethod
-	public void open() {
-		BeaconActivity.open(reactContext);
+	public void open(String signature) {
+		String secureSignature = secureModeSignature(signature);
+		if (secureSignature != null) {
+			BeaconActivity.openInSecureMode(reactContext, secureSignature);
+		} else {
+			BeaconActivity.open(reactContext);
+		}
 	}
 
 	@ReactMethod
@@ -83,13 +89,14 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 		} else {
 			Beacon.identify(this.userEmail);
 		}
+		this.userSignature = identity.hasKey("signature") ? identity.getString("signature") : null;
 
 		Iterator<Map.Entry<String, Object>> i = identity.getEntryIterator();
 
 		while (i.hasNext()) {
 			Map.Entry<String, Object> entry = i.next();
 			String key = entry.getKey();
-			if (key == "email" || key == "name") continue;
+			if (key.equals("email") || key.equals("name") || key.equals("signature")) continue;
 			Beacon.addAttributeWithKey(key, (String) entry.getValue());
 		}
 
@@ -105,6 +112,7 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 
 	@ReactMethod
 	public void logout() {
+		this.userSignature = null;
 		Beacon.logout();
 	}
 
@@ -114,10 +122,15 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 	}
 
 	@ReactMethod
-	public void search(String query) {
+	public void search(String query, String signature) {
 		ArrayList<String> list = new ArrayList<String>();
 		list.add(query);
-		BeaconActivity.open(this.reactContext, BeaconScreens.SEARCH_SCREEN, list);
+		String secureSignature = secureModeSignature(signature);
+		if (secureSignature != null) {
+			BeaconActivity.openInSecureMode(this.reactContext, secureSignature, BeaconScreens.SEARCH_SCREEN, list);
+		} else {
+			BeaconActivity.open(this.reactContext, BeaconScreens.SEARCH_SCREEN, list);
+		}
 	}
 
 	@ReactMethod
@@ -133,8 +146,13 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 	}
 
 	@ReactMethod
-	public void contactForm() {
-		BeaconActivity.open(this.reactContext, BeaconScreens.CONTACT_FORM_SCREEN, new ArrayList<String>());
+	public void contactForm(String signature) {
+		String secureSignature = secureModeSignature(signature);
+		if (secureSignature != null) {
+			BeaconActivity.openInSecureMode(this.reactContext, secureSignature, BeaconScreens.CONTACT_FORM_SCREEN, new ArrayList<String>());
+		} else {
+			BeaconActivity.open(this.reactContext, BeaconScreens.CONTACT_FORM_SCREEN, new ArrayList<String>());
+		}
 	}
 
 //	@ReactMethod
@@ -162,5 +180,11 @@ public class HelpScoutModule extends ReactContextBaseJavaModule {
 	@ReactMethod
 	public void clearFormPrefill() {
 	  Beacon.contactFormReset();
+	}
+
+	// The explicit signature, else the one from identify; null means open unsigned.
+	private String secureModeSignature(String signature) {
+		String resolved = signature != null && !signature.isEmpty() ? signature : this.userSignature;
+		return resolved != null && !resolved.isEmpty() ? resolved : null;
 	}
 }

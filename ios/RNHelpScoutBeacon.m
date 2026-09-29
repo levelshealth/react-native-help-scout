@@ -8,6 +8,7 @@
 {
     NSString *formSubject;
     NSString *formText;
+    NSString *identifiedSignature;
     
     HSBeaconSettings *settings;
     bool hasListeners;
@@ -26,10 +27,15 @@ RCT_EXPORT_METHOD(init:(NSString *)beaconId)
     settings.delegate = self;
 }
 
-RCT_EXPORT_METHOD(open)
+RCT_EXPORT_METHOD(open:(NSString *)signature)
 {
+    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
-        [HSBeacon openBeacon:self->settings];
+        if (secureSignature != nil) {
+            [HSBeacon openBeacon:self->settings signature:secureSignature];
+        } else {
+            [HSBeacon openBeacon:self->settings];
+        }
     });
 }
 
@@ -47,10 +53,15 @@ RCT_EXPORT_METHOD(previousMessages)
 //    });
 }
 
-RCT_EXPORT_METHOD(contactForm)
+RCT_EXPORT_METHOD(contactForm:(NSString *)signature)
 {
+    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
-        [HSBeacon navigate:@"/ask/message/" beaconSettings:self->settings];
+        if (secureSignature != nil) {
+            [HSBeacon navigate:@"/ask/message/" beaconSettings:self->settings signature:secureSignature];
+        } else {
+            [HSBeacon navigate:@"/ask/message/" beaconSettings:self->settings];
+        }
     });
 }
 
@@ -61,10 +72,15 @@ RCT_EXPORT_METHOD(contactForm)
 //    });
 //}
 
-RCT_EXPORT_METHOD(search:(NSString *)query)
+RCT_EXPORT_METHOD(search:(NSString *)query signature:(NSString *)signature)
 {
+    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
-        [HSBeacon search:query beaconSettings:self->settings];
+        if (secureSignature != nil) {
+            [HSBeacon search:query beaconSettings:self->settings signature:secureSignature];
+        } else {
+            [HSBeacon search:query beaconSettings:self->settings];
+        }
     });
 }
 
@@ -91,18 +107,22 @@ RCT_EXPORT_METHOD(identify:(NSDictionary *)identity)
     if ([identity objectForKey:@"name"] != NULL) {
         user.name = [RCTConvert NSString:identity[@"name"]];
     }
+
+    // HSBeaconUser has no signature property in Beacon 3.x; the signature is passed on each open instead.
+    identifiedSignature = [RCTConvert NSString:identity[@"signature"]];
     
     for (NSString *key in identity) {
-        if ([key isEqual:@"email"] || [key isEqual:@"name"]) continue;
+        if ([key isEqual:@"email"] || [key isEqual:@"name"] || [key isEqual:@"signature"]) continue;
         id value = identity[key];
         [user addAttributeWithKey:key value:[RCTConvert NSString:value]];
     }
     
-    [HSBeacon login:user];
+    [HSBeacon identify:user];
 }
 
 RCT_EXPORT_METHOD(logout)
 {
+    identifiedSignature = nil;
     [HSBeacon logout];
 }
 
@@ -117,6 +137,13 @@ RCT_EXPORT_METHOD(clearFormPrefill)
 {
     formSubject = nil;
     formText = nil;
+}
+
+// The explicit signature, else the one from identify; nil means open unsigned.
+- (NSString *)secureModeSignature:(NSString *)signature
+{
+    NSString *resolved = signature.length > 0 ? signature : identifiedSignature;
+    return resolved.length > 0 ? resolved : nil;
 }
 
 - (void)close:(RCTResponseSenderBlock)callback
