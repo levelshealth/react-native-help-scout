@@ -29,8 +29,8 @@ RCT_EXPORT_METHOD(init:(NSString *)beaconId)
 
 RCT_EXPORT_METHOD(open:(NSString *)signature)
 {
-    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSString *secureSignature = [self secureModeSignature:signature];
         if (secureSignature != nil) {
             [HSBeacon openBeacon:self->settings signature:secureSignature];
         } else {
@@ -42,7 +42,12 @@ RCT_EXPORT_METHOD(open:(NSString *)signature)
 RCT_EXPORT_METHOD(navigate:(NSString *)route)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [HSBeacon navigate:route beaconSettings:self->settings];
+        NSString *secureSignature = [self secureModeSignature:nil];
+        if (secureSignature != nil) {
+            [HSBeacon navigate:route beaconSettings:self->settings signature:secureSignature];
+        } else {
+            [HSBeacon navigate:route beaconSettings:self->settings];
+        }
     });
 }
 
@@ -55,8 +60,8 @@ RCT_EXPORT_METHOD(previousMessages)
 
 RCT_EXPORT_METHOD(contactForm:(NSString *)signature)
 {
-    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSString *secureSignature = [self secureModeSignature:signature];
         if (secureSignature != nil) {
             [HSBeacon navigate:@"/ask/message/" beaconSettings:self->settings signature:secureSignature];
         } else {
@@ -74,8 +79,8 @@ RCT_EXPORT_METHOD(contactForm:(NSString *)signature)
 
 RCT_EXPORT_METHOD(search:(NSString *)query signature:(NSString *)signature)
 {
-    NSString *secureSignature = [self secureModeSignature:signature];
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSString *secureSignature = [self secureModeSignature:signature];
         if (secureSignature != nil) {
             [HSBeacon search:query beaconSettings:self->settings signature:secureSignature];
         } else {
@@ -87,7 +92,12 @@ RCT_EXPORT_METHOD(search:(NSString *)query signature:(NSString *)signature)
 RCT_EXPORT_METHOD(openArticle:(NSString *)articleId)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [HSBeacon openArticle:articleId beaconSettings:self->settings];
+        NSString *secureSignature = [self secureModeSignature:nil];
+        if (secureSignature != nil) {
+            [HSBeacon openArticle:articleId beaconSettings:self->settings signature:secureSignature];
+        } else {
+            [HSBeacon openArticle:articleId beaconSettings:self->settings];
+        }
     });
 }
 
@@ -96,34 +106,40 @@ RCT_EXPORT_METHOD(dismiss:(RCTResponseSenderBlock)callback)
     [self close:callback];
 }
 
+// identify, logout and every open run on the main queue, so they apply in JS call order
+// and an open never sees a signature that a later logout or identify replaced.
 RCT_EXPORT_METHOD(identify:(NSDictionary *)identity)
 {
-    HSBeaconUser *user = [[HSBeaconUser alloc] init];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        HSBeaconUser *user = [[HSBeaconUser alloc] init];
 
-    if ([identity objectForKey:@"email"] != NULL) {
-        user.email = [RCTConvert NSString:identity[@"email"]];
-    }
+        if ([identity objectForKey:@"email"] != NULL) {
+            user.email = [RCTConvert NSString:identity[@"email"]];
+        }
 
-    if ([identity objectForKey:@"name"] != NULL) {
-        user.name = [RCTConvert NSString:identity[@"name"]];
-    }
+        if ([identity objectForKey:@"name"] != NULL) {
+            user.name = [RCTConvert NSString:identity[@"name"]];
+        }
 
-    // HSBeaconUser has no signature property in Beacon 3.x; the signature is passed on each open instead.
-    identifiedSignature = [RCTConvert NSString:identity[@"signature"]];
-    
-    for (NSString *key in identity) {
-        if ([key isEqual:@"email"] || [key isEqual:@"name"] || [key isEqual:@"signature"]) continue;
-        id value = identity[key];
-        [user addAttributeWithKey:key value:[RCTConvert NSString:value]];
-    }
-    
-    [HSBeacon identify:user];
+        // HSBeaconUser has no signature property in Beacon 3.x; the signature is passed on each open instead.
+        self->identifiedSignature = [RCTConvert NSString:identity[@"signature"]];
+
+        for (NSString *key in identity) {
+            if ([key isEqual:@"email"] || [key isEqual:@"name"] || [key isEqual:@"signature"]) continue;
+            id value = identity[key];
+            [user addAttributeWithKey:key value:[RCTConvert NSString:value]];
+        }
+
+        [HSBeacon identify:user];
+    });
 }
 
 RCT_EXPORT_METHOD(logout)
 {
-    identifiedSignature = nil;
-    [HSBeacon logout];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self->identifiedSignature = nil;
+        [HSBeacon logout];
+    });
 }
 
 RCT_EXPORT_METHOD(prefillForm:(NSString *)subject content:(NSString *)text)
